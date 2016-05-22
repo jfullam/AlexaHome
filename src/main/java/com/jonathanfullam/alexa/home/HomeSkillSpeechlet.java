@@ -4,15 +4,17 @@ import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
-import org.joda.time.ReadableInstant;
-import org.joda.time.Seconds;
+import org.joda.time.*;
+import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Created by jfullam on 5/19/16.
  */
+@Component
 public class HomeSkillSpeechlet implements Speechlet{
 
     private String bedTime = "19:30:00";
@@ -38,11 +40,37 @@ public class HomeSkillSpeechlet implements Speechlet{
     }
 
     private SpeechletResponse handleBedtimeIntent() {
-        SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss");
+
+        DateTime now = DateTime.now(DateTimeZone.forID("America/New_York"));
+        DateTime bedtime = now.withTime(19, 30, 0, 0);
+
+
 
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
-        speech.setText("It's way past your bedtime.  Go to bed now so you aren't too tired tomorrow.");
-        return SpeechletResponse.newTellResponse(speech);
+
+        if (now.isAfter(bedtime)) {
+            speech.setText("It's past your bedtime!  Make sure you cleaned up any messes you made and then go to bed!");
+            return SpeechletResponse.newTellResponse(speech);
+        } else {
+            int hours = Minutes.minutesBetween(now, bedtime).getValue(0) / 60;
+            int minutes = Minutes.minutesBetween(now, bedtime).getValue(0) % 60;
+            String bedtimeStr = "Your bedtime is in " + hours + " hours and " + minutes + " minutes.";
+
+            if (hours > 8) {
+                bedtimeStr = bedtimeStr + " Did you seriously ask me that?  It's still the morning!";
+            }
+            else if (hours > 2) {
+                bedtimeStr = bedtimeStr + " You still have plenty of time.  Go and play.";
+            } else {
+                bedtimeStr = bedtimeStr + " It's not too far away so maybe you should start winding down.  Don't forget to clean up your toys before bed too.";
+            }
+
+            speech.setText(bedtimeStr);
+            return SpeechletResponse.newTellResponse(speech);
+        }
+
+
+
     }
 
     private SpeechletResponse handleBirthdayIntent(Intent intent) {
@@ -74,4 +102,6 @@ public class HomeSkillSpeechlet implements Speechlet{
     public void onSessionEnded(SessionEndedRequest sessionEndedRequest, Session session) throws SpeechletException {
 
     }
+
+
 }
